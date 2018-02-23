@@ -13,6 +13,8 @@ import "./car.gaml"
 import "./road.gaml"
 import "./building.gaml"
 import "./intersection.gaml"
+import "./administrator.gaml"
+
 
 global{
 
@@ -38,6 +40,7 @@ global{
 	graph road_network;
 
 	map general_speed_map;
+	map general_cost_map;
 
 	
 	float current_hour update: (time / #sec);
