@@ -13,6 +13,7 @@ import "./car.gaml"
 import "./road.gaml"
 import "./building.gaml"
 import "./intersection.gaml"
+import "./administrator.gaml"
 
 
 
