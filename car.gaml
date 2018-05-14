@@ -9,17 +9,37 @@ model car
 
 
 import "./initialize.gaml"
-import "./car.gaml"
 import "./road.gaml"
 import "./building.gaml"
 import "./intersection.gaml"
 import "./administrator.gaml"
+import "./vehicle.gaml"
+
+global{
+	rgb car_color <- #pink;
+	int nb_car <- 5;
+	intersection starting_point;
+	int trip_generation <- nb_car;
+	
+	
+}
 
 
+species make_car{
+	int car_num;
 
-species car skills: [advanced_driving] { 
-	rgb color <- rnd_color(255);
-	bool checked;
+	reflex make{
+			if(current_time = 10){
+				create car number:car_num;		
+		
+		}
+	}
+}
+
+
+species car parent:vehicle { 
+	
+	
 	intersection target;
 	intersection source_node;
 	intersection true_target;
@@ -45,6 +65,55 @@ species car skills: [advanced_driving] {
 	agent mem_return_current_road;
 	list<point> mem_return_targets;
 	point temp_current_target <- current_target;
+	point loc ;
+	
+	
+	init{
+		write(name);
+		speed <- 60 #km /#h ;
+			vehicle_length <- 3.0 #m;
+			right_side_driving <- true;
+			proba_lane_change_up <- 0.1 + (rnd(500) / 500);
+			proba_lane_change_down <- 0.5+ (rnd(500) / 500);
+			security_distance_coeff <-(1.5 - rnd(1000) / 1000);  
+			proba_respect_priorities <- 0.1;
+			proba_respect_stops <- [0.0];
+			proba_block_node <- 0.0;
+			proba_use_linked_road <- 0.0;
+			max_acceleration <- 0.5 + rnd(500) / 1000;
+			speed_coeff <- 1.2 - (rnd(400) / 1000);
+			d <- one_of(intersection where (each.not_node = false)); 
+			target <- d;
+			o <- one_of(intersection where (each.not_node = false)); 
+			location <- any_location_in(d);
+			current_path <- compute_path(graph: road_network, target: o);
+			mem_return_path <- current_path;
+			mem_return_current_road <- current_road;
+			mem_return_current_target <- current_target;
+			mem_return_targets <- targets ;
+			mem_return_final_target <- final_target;
+			
+			if(current_road != nil){
+			road(current_road).all_agents <- road(current_road).all_agents - self;
+				remove self from: list(road(current_road).agents_on[0][0]);
+				remove self from: list(road(current_road).agents_on[1][0]);
+			}
+			
+			current_road <- nil;
+			current_path <- nil;
+			current_target <- nil;
+			targets <- nil;
+			final_target <- nil;
+		
+			
+			location <- any_location_in(o);
+			current_path <- compute_path(graph: road_network, target: target);
+			mem_going_path <- current_path;
+			mem_going_current_road <- current_road;
+			mem_going_current_target <- current_target;
+			mem_going_targets <- targets ;
+			mem_going_final_target <- final_target;
+	}
 
 
 //交差点の交通量を測る（車が交差点を通るたびに、その交差点の交通量インクリメント）
@@ -57,6 +126,8 @@ species car skills: [advanced_driving] {
 //		temp_current_target <- current_target;
 //		
 //	}
+	
+	
 	
 	//道路区間ごとの旅行時間を測るための処理
 	reflex set_arrivaltime when: current_road != temp {
@@ -116,22 +187,29 @@ species car skills: [advanced_driving] {
 	
 	
 //パスとターゲットが決まってれば走るよね
-	reflex move when: current_path != nil and final_target != nil and checked = false{
-		do drive;
+	reflex move when: current_path != nil and final_target != nil{
+		do driving_action;
 	}
+	reflex a{
+	loc <- calcul_loc();
+}
+	
 	
 	aspect car3D {
 		if (current_road) != nil {
-			point loc <- calcul_loc();
-			draw box(vehicle_length, 1,1) at: loc rotate:  heading color: color;
-			draw triangle(0.5) depth: 1.5 at: loc rotate:  heading + 90 color: color;	
+			draw box(vehicle_length, 1,1) at: loc rotate:  heading color: car_color;
+			draw triangle(0.5) depth: 1.5 at: loc rotate:  heading + 90 color: car_color;	
 		}
-	} 
-	
+
+
+}
+
+
 	aspect icon {
-		point loc <- calcul_loc();
+			
 			draw car_shape_empty size: vehicle_length   at: loc rotate: heading + 90 ;
 	}
+	
 	
 	point calcul_loc {
 		float val <- (road(current_road).lanes - current_lane) + 0.5;
@@ -139,12 +217,29 @@ species car skills: [advanced_driving] {
 		if (val = 0) {
 			return location; 
 		} else {
-			return (location + {cos(heading + 90) * val, sin(heading + 90) * val});
+			return (location - {cos(heading + 90) * val, sin(heading + 90) * val});
 		}
+	}
+	reflex save_location{
+		
+		//save loc.x to:"../results/car_location.x" + cycle +".csv" type:"csv";
+		//save loc.y to:"../results/car_location.y" + cycle +".csv" type:"csv";
+		
+	//	save loc to:"../results/car_location" + cycle +".csv" type:"csv";
 	}
 } 
 
 
 
 /* Insert your model definition here */
+
+
+
+
+
+
+
+
+
+
 

@@ -17,6 +17,57 @@ import "./intersection.gaml"
 import "./administrator.gaml"
 
 
+
+global{
+		list<intersection> traffic_signals;
+		int time_to_set_offset <- 1;
+	    float sig_split parameter: "signal split" category: "signal sgent" min: 0.1 max: 1.0 init:0.5 step: 0.1;
+		bool priority_offset <- true; //優先オフセットを実行するための変数
+		file shape_file_node_joint <- file("../includes/ver5/nodes3747t.shp");
+	
+	
+}
+
+species intersection_make{  //交差点エージェントを生成するためのエージェント
+	init{
+		loop i from: 0 to: 7{
+			create area_location {
+				location <- area_data[i];
+				area_name <- area_name_data[i];
+			}
+		} 
+		
+		create intersection from: shape_file_node_joint with:[highway::(string(read("signaltype")))]{
+			
+			
+			ask area_location at_distance(2#km){
+			myself.area_name <- self.area_name;	
+			}
+		}
+		
+		write("intersection");
+		starting_point <- one_of(intersection where each.is_traffic_signal);
+		traffic_signals <- intersection where each.is_traffic_signal;
+		general_speed_map <- road as_map (each::(each.shape.perimeter / (each.maxspeed)));
+		road_network <-  as_driving_graph(road, intersection);   //道路と交差点を結びつけて道路ネットワークを生成
+		
+		//道路と繋がりのない交差点エージェントを削除		
+		loop i from: 0 to: length(intersection)-1{
+			if(length(intersection[i].roads_in) = 0 and length(intersection[i].roads_out) = 0){
+				intersection[i].not_node <-true;
+			}
+		}
+		
+		ask intersection{
+			if(not_node){
+				do die;
+			}
+		}
+		
+		do die;
+	}
+}
+
 species intersection skills: [skill_road_node] {
 	bool is_traffic_signal;
 	bool not_node <- false;
@@ -40,6 +91,75 @@ species intersection skills: [skill_road_node] {
 	float l2 <- 0.001; //第二現示の飽和度
 	float l; //交差点の飽和度(l1 + l2)
 	int L <- 5; //損失時間
+	string area_name;
+	
+	
+	
+	init{
+		write(name);
+		if(highway != nil){
+				is_traffic_signal <- true;
+			}
+		if(is_traffic_signal = true){  //信号機と隣接する道路情報の保持
+				write("true");
+		//4差路交差点の場合
+			if (length(roads_in) = 4) {
+				if(is_blue){		
+					current_shows <- [road(roads_in[0]),road(roads_in[2])];	
+						
+						if((road(roads_in[0]).highway = "trunk" or road(roads_in[2]).highway = "trunk")){
+						split <- split - 0.2;
+						write(self);
+						have_trunk <- true;
+						if(split > 1){
+							split <- 0.9;
+						}
+					}
+					
+								
+				}else{
+					current_shows <- [road(roads_in[1]),road(roads_in[3])]; 
+					
+						if( (road(roads_in[1]).highway = "trunk" or road(roads_in[3]).highway = "trunk")){
+						split <- split + 0.2;
+						have_trunk <- true;
+						write(self);
+						if(split < 0){
+							split <- 0.1;
+						}
+					}
+				}		
+				
+			}
+			
+		//三叉路交差点の場合
+			if (length(roads_in) = 3) {		
+				if(is_blue){
+					current_shows <- [road(roads_in[0])];	
+						if((road(roads_in[0]).highway = "trunk")){
+							split <- split - 0.2;
+							have_trunk <- true;
+							write(self);
+						if(split > 1){
+							split <- 0.9;
+						}	
+				}		
+				}else{
+					current_shows <- [road(roads_in[1]),road(roads_in[2])]; 
+	
+						if((road(roads_in[1]).highway = "trunk" or road(roads_in[3]).highway = "trunk")){
+							split <- split + 0.2;
+							have_trunk <- true;
+							write(self);
+							if(split < 0){
+								split <- 0.1;
+						}
+					}
+				}
+			}
+		}
+				
+	}
 	
 
 //オフセット設定（広域信号制御の際に使用）
@@ -89,64 +209,7 @@ species intersection skills: [skill_road_node] {
 	
 
 //現示の初期化
-	reflex init_signals when: time = 0 and is_traffic_signal{
-				
-		//4差路交差点の場合
-			if (length(roads_in) = 4) {
-				if(is_blue){		
-					current_shows <- [road(roads_in[0]),road(roads_in[2])];	
-						
-						if((road(roads_in[0]).highway = "trunk" or road(roads_in[2]).highway = "trunk")){
-						split <- split - 0.2;
-						write(self);
-						have_trunk <- true;
-						if(split > 1){
-							split <- 0.9;
-						}
-					}
-					
-								
-				}else{
-					current_shows <- [road(roads_in[1]),road(roads_in[3])]; 
-					
-						if( (road(roads_in[1]).highway = "trunk" or road(roads_in[3]).highway = "trunk")){
-						split <- split + 0.2;
-						have_trunk <- true;
-						write(self);
-						if(split < 0){
-							split <- 0.1;
-						}
-					}
-			}		
-				
-			}
-			
-		//三叉路交差点の場合
-			if (length(roads_in) = 3) {		
-				if(is_blue){
-					current_shows <- [road(roads_in[0])];	
-						if((road(roads_in[0]).highway = "trunk")){
-							split <- split - 0.2;
-							have_trunk <- true;
-							write(self);
-						if(split > 1){
-							split <- 0.9;
-						}	
-				}		
-				}else{
-					current_shows <- [road(roads_in[1]),road(roads_in[2])]; 
 	
-						if((road(roads_in[1]).highway = "trunk" or road(roads_in[3]).highway = "trunk")){
-							split <- split + 0.2;
-							have_trunk <- true;
-							write(self);
-							if(split < 0){
-								split <- 0.1;
-						}
-					}
-				}
-			}
-	}
 		
 	//現示の切り替え
 	reflex start when: counter >= phase_time and is_traffic_signal{
@@ -156,6 +219,10 @@ species intersection skills: [skill_road_node] {
 		if(length(c1) != 0){
 			loop i to:0 from: length(c1)-1{				
 				
+				
+				//追加　西浦 4/27
+				vehicle(c1[i]).checked <- false;
+				
 			//注意//
 			//普通車以外の自動車を信号制御の対象とする場合
 			//信号制御の対象とするエージェントのspeicesに「checked」の変数をbool型で追加
@@ -163,8 +230,8 @@ species intersection skills: [skill_road_node] {
 			//		if(contains(信号制御の対象とするエージェントの型名,c1[i])){
 			//			信号制御の対象とするエージェントの型名(c1[i]).checked <- false;
 			//		}
-			if(contains(car,c1[i])){
-				car(c1[i]).checked <- false;
+			if(contains(vehicle,c1[i])){
+				vehicle(c1[i]).checked <- false;
 				}
 			}
 		}
@@ -204,6 +271,9 @@ species intersection skills: [skill_road_node] {
 						if(contains(agents_at_distance(10.0),current_shows[0].all_agents[i]) and !contains(c1,current_shows[0].all_agents[i])){
 							add current_shows[0].all_agents[i] to: c1;
 							
+							//以下１文追加　西浦4/27
+							vehicle(current_shows[0].all_agents[i]).checked <- true;
+							
 							//注意//
 							//普通車以外の自動車を信号制御の対象とする場合
 							//信号制御の対象とするエージェントのspeicesに「checked」の変数をbool型で追加
@@ -213,20 +283,24 @@ species intersection skills: [skill_road_node] {
 							//		}
 							
 							
-							if(contains(car,current_shows[0].all_agents[i])){
-								car(current_shows[0].all_agents[i]).checked <- true;
+							if(contains(vehicle,current_shows[0].all_agents[i])){
+								vehicle(current_shows[0].all_agents[i]).checked <- true;
 							}
 						}
 					}
 			}			
 			
 			if(length(current_shows[1].all_agents) != 0 ){
-				
+				write(vehicle);
+				write(car);
 					loop i to:0 from: length(current_shows[1].all_agents)-1{
 									
 						if(contains(agents_at_distance(10.0),current_shows[1].all_agents[i]) and !contains(c1,current_shows[1].all_agents[i])){
 							add current_shows[1].all_agents[i] to: c1;
 					
+					
+							vehicle(current_shows[1].all_agents[i]).checked <- true;
+						
 							//注意//
 							//普通車以外の自動車を信号制御の対象とする場合
 							//信号制御の対象とするエージェントのspeicesに「checked」の変数をbool型で追加
@@ -235,8 +309,9 @@ species intersection skills: [skill_road_node] {
 							//			信号制御の対象とするエージェント(current_shows[0].all_agents[i]).checked <- true;
 							//		}
 			
-							if(contains(car,current_shows[1].all_agents[i])){
-								car(current_shows[1].all_agents[i]).checked <- true;
+							if(contains(vehicle,current_shows[1].all_agents[i])){
+								vehicle(current_shows[1].all_agents[i]).checked <- true;
+								write(name);
 							}
 						}
 					}
@@ -261,6 +336,11 @@ species intersection skills: [skill_road_node] {
 						if(contains(agents_at_distance(10.0),current_shows[0].all_agents[i]) and !contains(c1,current_shows[0].all_agents[i])){
 							add current_shows[0].all_agents[i] to: c1;
 					
+					
+					//以下１文追加　西浦4/27
+							vehicle(current_shows[0].all_agents[i]).checked <- true;
+							
+							
 							//注意//
 							//普通車以外の自動車を信号制御の対象とする場合
 							//信号制御の対象とするエージェントのspeicesに「checked」の変数をbool型で追加
@@ -269,8 +349,8 @@ species intersection skills: [skill_road_node] {
 							//			信号制御の対象とするエージェント(current_shows[0].all_agents[i]).checked <- true;
 							//		}
 										
-						if(contains(car,current_shows[0].all_agents[i])){
-							car(current_shows[0].all_agents[i]).checked <- true;
+						if(contains(vehicle,current_shows[0].all_agents[i])){
+							vehicle(current_shows[0].all_agents[i]).checked <- true;
 						}
 					}
 				}
@@ -283,6 +363,10 @@ species intersection skills: [skill_road_node] {
 									
 						if(contains(agents_at_distance(10.0),current_shows[1].all_agents[i]) and !contains(c1,current_shows[1].all_agents[i])){
 							add current_shows[1].all_agents[i] to: c1;
+
+
+								vehicle(current_shows[1].all_agents[i]).checked <- true;
+
 					
 							//注意//
 							//普通車以外の自動車を信号制御の対象とする場合
@@ -293,8 +377,8 @@ species intersection skills: [skill_road_node] {
 							//		}
 					
 		
-							if(contains(car,current_shows[1].all_agents[i])){
-								car(current_shows[1].all_agents[i]).checked <- true;
+							if(contains(vehicle,current_shows[1].all_agents[i])){
+								vehicle(current_shows[1].all_agents[i]).checked <- true;
 							}
 						}
 					}
@@ -306,7 +390,7 @@ species intersection skills: [skill_road_node] {
 	
 	aspect geom3D {
 		if (is_traffic_signal) {	
-			draw box(10,10,10) color:rgb("black");
+			//draw box(10,10,10) color:rgb("black");
 			draw sphere(10) at: {location.x,location.y,12} color: is_blue ? #green : #red;
 		}
 	}

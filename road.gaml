@@ -13,9 +13,41 @@ import "./road.gaml"
 import "./building.gaml"
 import "./intersection.gaml"
 import "./administrator.gaml"
+import "./vehicle.gaml"
 
 
-species road skills: [skill_road] { 
+global{
+	file shape_file_road_joint <- file("../includes/ver5/roads3747i.shp");
+	geometry shape <- envelope(shape_file_road_joint);
+	graph road_network;
+}
+
+species road_make{  //道路エージェント生成のためのエージェント
+	init{
+		write("road");
+		create road from: shape_file_road_joint{
+		lanes <- 2;
+			maxspeed <- 100.0;
+			shape <- polyline(self.shape.points);
+			
+			//反対車線側の道路エージェントの生成
+			create road{
+						
+		    	lanes <- max([2, int (myself.lanes / 2.0)]);
+				shape <- polyline(reverse(myself.shape.points));
+				shape <- polygon(reverse(myself.shape.points));
+				maxspeed <- 100.0;
+				geom_display  <- myself.geom_display;
+				linked_road <- myself;
+				myself.linked_road <- self;
+			}
+			geom_display <- shape +  (2 * lanes);
+		}
+		do die;
+	}
+}
+
+species road skills: [skill_road] { //道路エージェント
 	string oneway;
 	string highway;
 	geometry geom_display;
@@ -35,6 +67,8 @@ species road skills: [skill_road] {
 	road me <- self;
 	
 	
+	
+	
 	reflex when :observation_mode  {
 		
 				
@@ -52,7 +86,7 @@ species road skills: [skill_road] {
 	}
 	
 	aspect geom {    
-		draw geom_display border:  #gray  color: #gray ;
+		draw geom_display border:  #gray  color: rgb (231, 234, 234,255) ;
 	}  
 }
 
