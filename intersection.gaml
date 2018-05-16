@@ -92,6 +92,8 @@ species intersection skills: [skill_road_node] {
 	float l; //交差点の飽和度(l1 + l2)
 	int L <- 5; //損失時間
 	string area_name;
+	//point signal_loc;
+	
 	
 	
 	
@@ -101,7 +103,6 @@ species intersection skills: [skill_road_node] {
 				is_traffic_signal <- true;
 			}
 		if(is_traffic_signal = true){  //信号機と隣接する道路情報の保持
-				write("true");
 		//4差路交差点の場合
 			if (length(roads_in) = 4) {
 				if(is_blue){		
@@ -291,8 +292,7 @@ species intersection skills: [skill_road_node] {
 			}			
 			
 			if(length(current_shows[1].all_agents) != 0 ){
-				write(vehicle);
-				write(car);
+
 					loop i to:0 from: length(current_shows[1].all_agents)-1{
 									
 						if(contains(agents_at_distance(10.0),current_shows[1].all_agents[i]) and !contains(c1,current_shows[1].all_agents[i])){
@@ -388,10 +388,49 @@ species intersection skills: [skill_road_node] {
 	}
 	
 	
+	point signal_loc_re(int x){
+		float dx;
+		float dy;
+		float a;
+		dx <-location.x - road(roads_in[0]).location.x;
+		dy <-location.y - road(roads_in[0]).location.y;
+		if(dx != 0){
+		a <- dy/dx;
+		if(x = 0){	
+			return point(location.x + 3.0#m,location.y + (3.0#m*a));
+		}else if(x = 2){
+			return point(location.x - 3.0#m,location.y - (3.0#m*a));
+		}else if(x =1){
+			return point(location.x -(3.0#m),location.y + 3.0#m/a);			
+		}else if(x = 3){			
+			return point(location.x +(3.0#m),location.y - 3.0#m/a);
+		}
+		
+		}else{
+			if(x = 0){	
+			return point(location.x ,location.y + (3.0#m));
+		}else if(x = 2){
+			return point(location.x ,location.y - (3.0#m));
+		}else if(x =1){
+			return point(location.x -(3.0#m),location.y);			
+		}else if(x = 3){			
+			return point(location.x +(3.0#m),location.y);
+		}
+		
+		}
+	}
+	
+	
+	
 	aspect geom3D {
 		if (is_traffic_signal) {	
 			//draw box(10,10,10) color:rgb("black");
-			draw sphere(10) at: {location.x,location.y,12} color: is_blue ? #green : #red;
+			//draw sphere(10) at: {location.x,location.y,12} color: is_blue ? #green : #red;
+			draw sphere(2#m) at: signal_loc_re(0) color: is_blue ? #green : #red;
+			draw sphere(2#m) at: signal_loc_re(1) color: is_blue ? #red : #green;
+			draw sphere(2#m) at: signal_loc_re(2) color: is_blue ? #green : #red;
+			draw sphere(2#m) at: signal_loc_re(3) color: is_blue ? #red : #green;
+			
 		}
 	}
 }
