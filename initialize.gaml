@@ -19,7 +19,8 @@ import "./taxi.gaml"
 
 
 global{
-	float step <-  0.1 #minutes;
+	bool save_car_log <- false;
+	float step <-  0.05 #minutes;
 	map general_speed_map;
 	map general_cost_map;
 	float current_hour update: (time / #sec);
@@ -27,7 +28,6 @@ global{
 	float time_to_thorw <- 3600.0;	
 	int current_hour2 update: (cycle / (3600/step)) mod 24;    //現在の時間
 	int current_time update: (cycle / (60/step)) mod 60;
-	file car_shape_empty  <- file('../icons/car.png');  //iconデータがないためコメントアウト
 	//file bus_img <- file('../icons/bus_blue.png');                                     //iconデータがないためコメントアウト
 	
 	
@@ -63,13 +63,17 @@ global{
 		create make_bus number:1;
 		
 		}
+		
+		reflex save when:save_car_log = true{   //車のlogデータ書き出し
+			save [0.0,0.0,0] to:"../results2/car_location.csv" type:"csv" rewrite: false;  			
+		}
 	}
   
     
     
     
-   experiment traffic_simulation type: gui {
-	
+   experiment traffic_simulation_icon type: gui {
+		parameter "save_car_log" var:save_car_log;
 	
 	output {
 		display city_display type: opengl{
@@ -84,8 +88,22 @@ global{
 	 }	
 	}
 	
+	experiment traffic_simulation_box type: gui {
+		parameter "save_car_log" var:save_car_log;
 	
-
+	output {
+		display city_display type: opengl{
+			species road aspect: geom refresh: false;
+			species intersection aspect: geom3D;
+			species building aspect: base ;
+			species car aspect:car3D;
+	//		species taxi aspect: circle;
+	//		species passenger aspect: circle;
+	//		species bus_to_BKC aspect: car3D;
+		}
+	 }	
+	}
+	
 
 /* Insert your model definition here */
 

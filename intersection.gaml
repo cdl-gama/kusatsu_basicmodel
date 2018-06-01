@@ -1,9 +1,14 @@
-/**
+**
 * Name: intersection
 * Author: mrks
 * Description: 
 * Tags: Tag1, Tag2, TagN
+* 
+*信号表示をわかりやすく修正 5/20
+*  
 */
+
+
 
 model intersection
 
@@ -21,7 +26,7 @@ import "./administrator.gaml"
 global{
 		list<intersection> traffic_signals;
 		int time_to_set_offset <- 1;
-	    float sig_split parameter: "signal split" category: "signal sgent" min: 0.1 max: 1.0 init:0.5 step: 0.1;
+	    float sig_split parameter: "signal split" category: "signal agent" min: 0.1 max: 1.0 init:0.5 step: 0.1;
 		bool priority_offset <- true; //優先オフセットを実行するための変数
 		file shape_file_node_joint <- file("../includes/ver5/nodes3747t.shp");
 	
@@ -389,48 +394,71 @@ species intersection skills: [skill_road_node] {
 	
 	
 	point signal_loc_re(int x){
-		float dx;
-		float dy;
-		float a;
-		dx <-location.x - road(roads_in[0]).location.x;
-		dy <-location.y - road(roads_in[0]).location.y;
-		if(dx != 0){
-		a <- dy/dx;
-		if(x = 0){	
-			return point(location.x + 3.0#m,location.y + (3.0#m*a));
-		}else if(x = 2){
-			return point(location.x - 3.0#m,location.y - (3.0#m*a));
-		}else if(x =1){
-			return point(location.x -(3.0#m),location.y + 3.0#m/a);			
-		}else if(x = 3){			
-			return point(location.x +(3.0#m),location.y - 3.0#m/a);
-		}
+		float dx0;
+		float dy0;
+		float dx1;
+		float dy1;
+		float a0;
+		float a1;
 		
+		if(x = 0 or x = 2){
+			dx0 <-location.x - road(roads_in[0]).location.x;
+			dy0 <-location.y - road(roads_in[0]).location.y;
+			if(dx0 != 0){
+		a0 <- dy0/dx0;
+		if(x = 0){	
+			return point(location.x + 3.0#m,location.y + (3.0#m*a0));
+		}else if(x = 2){
+			return point(location.x - 3.0#m,location.y - (3.0#m*a0));
+		}
 		}else{
 			if(x = 0){	
 			return point(location.x ,location.y + (3.0#m));
 		}else if(x = 2){
 			return point(location.x ,location.y - (3.0#m));
-		}else if(x =1){
+		}
+		}
+		
+		}
+		if(x=1 or x = 3){
+		dx1 <-location.x - road(roads_in[1]).location.x;
+		dy1 <-location.y - road(roads_in[1]).location.y;
+		if(dx1 != 0){
+		a1 <- dy1/dx1;
+		if(x =1){
+			return point(location.x -(3.0#m),location.y - 3.0#m*a1);			
+		}else if(x = 3){			
+			return point(location.x +(3.0#m),location.y + 3.0#m*a1);
+		}
+		
+		}else{
+			if(x =1){
 			return point(location.x -(3.0#m),location.y);			
 		}else if(x = 3){			
 			return point(location.x +(3.0#m),location.y);
 		}
 		
-		}
+			
 	}
-	
+}	
+
+}
 	
 	
 	aspect geom3D {
 		if (is_traffic_signal) {	
 			//draw box(10,10,10) color:rgb("black");
 			//draw sphere(10) at: {location.x,location.y,12} color: is_blue ? #green : #red;
-			draw sphere(2#m) at: signal_loc_re(0) color: is_blue ? #green : #red;
-			draw sphere(2#m) at: signal_loc_re(1) color: is_blue ? #red : #green;
-			draw sphere(2#m) at: signal_loc_re(2) color: is_blue ? #green : #red;
-			draw sphere(2#m) at: signal_loc_re(3) color: is_blue ? #red : #green;
-			
+			if(length(roads_in) =  4){
+				draw sphere(2#m) at: signal_loc_re(0) color: is_blue ? #green : #red;
+				draw sphere(2#m) at: signal_loc_re(1) color: is_blue ? #red : #green;
+				draw sphere(2#m) at: signal_loc_re(2) color: is_blue ? #green : #red;
+				draw sphere(2#m) at: signal_loc_re(3) color: is_blue ? #red : #green;
+			}else if(length(roads_in) =  3){
+				draw sphere(2#m) at: signal_loc_re(0) color: is_blue ? #green : #red;
+				draw sphere(2#m) at: signal_loc_re(1) color: is_blue ? #red : #green;
+				draw sphere(2#m) at: signal_loc_re(2) color: is_blue ? #green : #red;
+			}
 		}
 	}
 }

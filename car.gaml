@@ -16,35 +16,25 @@ import "./administrator.gaml"
 import "./vehicle.gaml"
 
 global{
-	rgb car_color <- #pink;
-	int nb_car <- 5;
+	int nb_car <- 5;    //車の台数指定
 	intersection starting_point;
 	int trip_generation <- nb_car;
+	file car_shape_empty  <- file('../icons/car.png');    //車の画像
+	
 	
 	
 }
 
 
-species make_car{
-	int car_num;
 
-	reflex make{
-			if(current_time = 10){
-				create car number:car_num;		
-		
-		}
-	}
-}
-
-
-species car parent:vehicle { 
+species car parent:vehicle {    //vehicleを継承した車エージェント
 	
-	
+	rgb car_color;   //車の色
 	intersection target;
 	intersection source_node;
 	intersection true_target;
-	intersection o;
-	intersection d;
+	intersection o;    //出発地点
+	intersection d;    //目的地
 	float arrival_time <-1.0;
 	float departure_time <-1.0;
 	float travel_time <- 1.0;
@@ -71,9 +61,11 @@ species car parent:vehicle {
 	init{
 		write(name);
 		speed <- 60 #km /#h ;
+			car_color <- rgb(rnd(255),rnd(255),rnd(255));
+		
 			vehicle_length <- 3.0 #m;
 			right_side_driving <- true;
-			proba_lane_change_up <- 0.1 + (rnd(500) / 500);
+			proba_lane_change_up <- 1.0 + (rnd(500) / 500);
 			proba_lane_change_down <- 0.5+ (rnd(500) / 500);
 			security_distance_coeff <-(1.5 - rnd(1000) / 1000);  
 			proba_respect_priorities <- 0.1;
@@ -92,12 +84,14 @@ species car parent:vehicle {
 			mem_return_current_target <- current_target;
 			mem_return_targets <- targets ;
 			mem_return_final_target <- final_target;
-			
+			/* エラーが起きたためコメントアウト（2018/5/22）
 			if(current_road != nil){
 			road(current_road).all_agents <- road(current_road).all_agents - self;
 				remove self from: list(road(current_road).agents_on[0][0]);
 				remove self from: list(road(current_road).agents_on[1][0]);
 			}
+			* 
+			*/
 			
 			current_road <- nil;
 			current_path <- nil;
@@ -198,7 +192,7 @@ species car parent:vehicle {
 	aspect car3D {
 		if (current_road) != nil {
 			draw box(vehicle_length, 1,1) at: loc rotate:  heading color: car_color;
-			draw triangle(0.5) depth: 1.5 at: loc rotate:  heading + 90 color: car_color;	
+			//draw triangle(0.5) depth: 1.5 at: loc rotate:  heading + 90 color: car_color;	
 		}
 
 
@@ -207,7 +201,7 @@ species car parent:vehicle {
 
 	aspect icon {
 			
-			draw car_shape_empty size: vehicle_length   at: loc rotate: heading + 90 ;
+			draw car_shape_empty size: vehicle_length   at: loc rotate: heading +180 ;
 	}
 	
 	
@@ -220,10 +214,10 @@ species car parent:vehicle {
 			return (location - {cos(heading + 90) * val, sin(heading + 90) * val});
 		}
 	}
-	reflex save_location{
+	reflex save_location when:save_car_log = true{  //車の位置データをcsvに書き出す	
 		
-		//save loc.x to:"../results/car_location.x" + cycle +".csv" type:"csv";
-		//save loc.y to:"../results/car_location.y" + cycle +".csv" type:"csv";
+		save [loc.x,loc.y,heading + 180] to:"../results2/car_location.csv" type:"csv" rewrite:false;
+		//save loc.y to:"../results2/car_location.y.csv" type:"csv" rewrite: false;
 		
 	//	save loc to:"../results/car_location" + cycle +".csv" type:"csv";
 	}

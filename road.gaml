@@ -25,15 +25,17 @@ global{
 species road_make{  //道路エージェント生成のためのエージェント
 	init{
 		write("road");
-		create road from: shape_file_road_joint{
+		create road from: shape_file_road_joint with:[road_width::(float(read("fukuin"))#cm),lane_num::(int(read("lanesu"))) ]{ //幅員と車線数の値を読み込む
+		//lanes <- max([1,int(lane_num/2)]);
 		lanes <- 2;
 			maxspeed <- 100.0;
 			shape <- polyline(self.shape.points);
 			
 			//反対車線側の道路エージェントの生成
 			create road{
-						
-		    	lanes <- max([2, int (myself.lanes / 2.0)]);
+				//lanes <- max([1,int(lane_num/2)]);		
+				lanes <- 2;
+		    	//lanes <- max([2, int (myself.lanes / 2.0)]);
 				shape <- polyline(reverse(myself.shape.points));
 				shape <- polygon(reverse(myself.shape.points));
 				maxspeed <- 100.0;
@@ -41,7 +43,12 @@ species road_make{  //道路エージェント生成のためのエージェン�
 				linked_road <- myself;
 				myself.linked_road <- self;
 			}
-			geom_display <- shape +  (2 * lanes);
+		//	geom_display <- shape +  (2 * lanes);
+		if(lane_num = 1){
+			geom_display <-  shape + road_width; 
+		}else{
+			geom_display <- shape + (lane_num/2*350#cm);
+		}
 		}
 		do die;
 	}
@@ -65,10 +72,12 @@ species road skills: [skill_road] { //道路エージェント
 	float ave_traveltime<-0.0;
 	point setnum <- {0.0,0.0};
 	road me <- self;
+	float road_width; //  幅員
+	int lane_num;     //車線数
 	
 	
 	
-	
+	/* 
 	reflex when :observation_mode  {
 		
 				
@@ -85,9 +94,13 @@ species road skills: [skill_road] { //道路エージェント
 		temp1 <- self.all_agents;
 	}
 	
+	
+	* 
+	*/
 	aspect geom {    
-		draw geom_display border:  #gray  color: rgb (231, 234, 234,255) ;
+		draw geom_display  border:  #black  color: #gray ;
 	}  
+	
 }
 
 
